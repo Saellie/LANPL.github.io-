@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Clock, Trash2, Play } from 'lucide-react';
+
+const YouTubeQueue = () => {
+  const [queue, setQueue] = useState([]);
+  const [inputUrl, setInputUrl] = useState('');
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+
+  // Extract video ID from YouTube URL
+  const getVideoId = (url) => {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : false;
+  };
+
+  // Add video to queue
+  const addToQueue = () => {
+    if (!inputUrl) return;
+    
+    const videoId = getVideoId(inputUrl);
+    if (!videoId) {
+      alert('Please enter a valid YouTube URL');
+      return;
+    }
+
+    const newVideo = {
+      id: videoId,
+      url: inputUrl,
+      addedAt: new Date(),
+      duration: Math.floor(Math.random() * 300) + 180, // Simulated duration between 3-8 minutes
+    };
+
+    setQueue([...queue, newVideo]);
+    setInputUrl('');
+  };
+
+  // Remove video from queue
+  const removeFromQueue = (index) => {
+    const newQueue = [...queue];
+    newQueue.splice(index, 1);
+    setQueue(newQueue);
+  };
+
+  // Start playing a video
+  const startPlaying = (index) => {
+    setCurrentlyPlaying(index);
+    setStartTime(new Date());
+  };
+
+  // Calculate ETA for a video in queue
+  const calculateETA = (index) => {
+    if (currentlyPlaying === null || index <= currentlyPlaying) return '0:00';
+    
+    let totalTime = 0;
+    for (let i = currentlyPlaying; i < index; i++) {
+      const video = queue[i];
+      const elapsed = i === currentlyPlaying ? 
+        (new Date() - startTime) / 1000 : 0;
+      totalTime += Math.max(0, video.duration - elapsed);
+    }
+
+    const minutes = Math.floor(totalTime / 60);
+    const seconds = Math.floor(totalTime % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>YouTube Queue Manager</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-2 mb-6">
+          <Input
+            placeholder="Paste YouTube URL here"
+            value={inputUrl}
+            onChange={(e) => setInputUrl(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={addToQueue}>Add to Queue</Button>
+        </div>
+
+        <div className="space-y-2">
+          {queue.map((video, index) => (
+            <div
+              key={index}
+              className={`flex items-center justify-between p-3 rounded-lg border ${
+                currentlyPlaying === index ? 'bg-green-50 border-green-200' : 'bg-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium w-6">{index + 1}.</span>
+                <span className="truncate max-w-md">{video.url}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-gray-500">
+                  <Clock size={16} />
+                  <span>{calculateETA(index)}</span>
+                </div>
+                {currentlyPlaying !== index && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => startPlaying(index)}
+                  >
+                    <Play size={16} />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFromQueue(index)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
+            </div>
+          ))}
+          
+          {queue.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              Queue is empty. Add some videos!
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default YouTubeQueue;
